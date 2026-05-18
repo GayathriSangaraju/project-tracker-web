@@ -1,13 +1,16 @@
-import styles from './projects-page.module.css';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import { AddProjectFragment } from '../../components/AddProjectFragment/AddProjectFragment';
 import { ProjectsList } from '../../components/ProjectsList/ProjectsList';
 
 export const ProjectsPage = () => {
   return (
-    <div className={styles['projects-page']}>
-      <h4>Projects Page</h4>
+    <Stack spacing={2}>
+      <Typography variant="h5" component="h2">
+        Projects
+      </Typography>
       <AddProjectFragment />
       <ProjectsList />
-    </div>
+    </Stack>
   );
 };

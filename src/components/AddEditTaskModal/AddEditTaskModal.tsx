@@ -7,8 +7,9 @@ import TextField from '@mui/material/TextField';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
 import { useCreateTask } from '../../hooks/tasks/useCreateTask';
-import React, { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { ModalContext, ModalType } from '../../contexts/ModalContextProvider';
 import { useUpdateTask } from '../../hooks/tasks/useUpdateTask';
 import { useParams } from 'react-router';
@@ -19,7 +20,7 @@ import { Loading } from '../Loading/Loading';
 export const AddEditTaskModal = () => {
   const params = useParams();
   const projectId = params.id ?? '';
-  const { modalState, toggleModal } = useContext(ModalContext);
+  const { modalState, closeModal } = useContext(ModalContext);
   const isTaskModalOpen = modalState.isAddTaskModalOpen;
   const modalPayload = modalState.payload;
   const isEditMode = modalPayload?.isEditMode ?? false;
@@ -30,18 +31,29 @@ export const AddEditTaskModal = () => {
   const [mutationError, setMutationError] = useState<string>('');
   const createTaskMutation = useCreateTask(projectId);
   const updateTaskMutation = useUpdateTask(projectId);
+  const isSaving = createTaskMutation.isPending || updateTaskMutation.isPending;
 
   const { data: task, isLoading, isError } = useGetTaskById(projectId, taskId ?? '');
 
-  React.useEffect(() => {
-    if (task) {
+  const resetForm = () => {
+    setTitle('');
+    setIsCompleted(false);
+    setError('');
+    setMutationError('');
+  };
+
+  useEffect(() => {
+    if (isTaskModalOpen && isEditMode && task) {
       setTitle(task.title);
       setIsCompleted(task.completed);
     }
-  }, [task]);
+    if (!isTaskModalOpen) {
+      resetForm();
+    }
+  }, [task, isTaskModalOpen, isEditMode]);
 
   const handleSaveTask = async () => {
-    const task = {
+    const taskData = {
       title,
       completed: isCompleted,
     };
@@ -52,25 +64,26 @@ export const AddEditTaskModal = () => {
       setMutationError('');
       try {
         if (isEditMode) {
-          await updateTaskMutation.mutateAsync({ taskId: taskId!, updateTaskData: task });
+          await updateTaskMutation.mutateAsync({ taskId: taskId!, updateTaskData: taskData });
         } else {
-          await createTaskMutation.mutateAsync(task);
+          await createTaskMutation.mutateAsync(taskData);
         }
-        toggleModal({ type: ModalType.AddEditTaskModal });
-        setTitle('');
+        closeModal(ModalType.AddEditTaskModal);
+        resetForm();
       } catch (err) {
         setMutationError(err instanceof Error ? err.message : 'Failed to save task.');
       }
     }
   };
+
   const handleCancel = () => {
-    toggleModal({ type: ModalType.AddEditTaskModal });
-    setMutationError('');
+    closeModal(ModalType.AddEditTaskModal);
+    resetForm();
   };
 
   return (
-    <Dialog onClose={handleCancel} open={isTaskModalOpen}>
-      <DialogTitle>{isEditMode ? 'Edit Task' : 'Add Task'}</DialogTitle>
+    <Dialog onClose={handleCancel} open={isTaskModalOpen} aria-labelledby="task-dialog-title">
+      <DialogTitle id="task-dialog-title">{isEditMode ? 'Edit Task' : 'Add Task'}</DialogTitle>
       <DialogContent>
         {isLoading && <Loading />}
         {isError && <ErrorMessage message={'Error loading task data.'} />}
@@ -86,6 +99,7 @@ export const AddEditTaskModal = () => {
               value={title}
               placeholder="Enter task title"
               required
+              disabled={isSaving}
               error={!!error}
               helperText={error}
               fullWidth
@@ -99,6 +113,7 @@ export const AddEditTaskModal = () => {
               control={
                 <Switch
                   checked={isCompleted}
+                  disabled={isSaving}
                   onChange={(event) => {
                     setIsCompleted(event.target.checked);
                   }}
@@ -110,11 +125,17 @@ export const AddEditTaskModal = () => {
         )}
       </DialogContent>
       <DialogActions>
-        <Button variant="outlined" onClick={handleCancel} size="medium">
+        <Button variant="outlined" onClick={handleCancel} disabled={isSaving} size="medium">
           Cancel
         </Button>
-        <Button variant="contained" onClick={handleSaveTask} size="medium">
-          Save
+        <Button
+          variant="contained"
+          disabled={isSaving}
+          onClick={handleSaveTask}
+          size="medium"
+          startIcon={isSaving ? <CircularProgress size={16} /> : undefined}
+        >
+          {isSaving ? 'Saving...' : 'Save'}
         </Button>
       </DialogActions>
     </Dialog>

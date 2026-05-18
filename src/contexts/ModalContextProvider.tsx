@@ -1,8 +1,8 @@
 import React, { Reducer, createContext, ReactNode } from 'react';
 
 export enum ModalType {
-  AddEditTaskModal,
-  AddEditProjectModal,
+  AddEditTaskModal = 'AddEditTaskModal',
+  AddEditProjectModal = 'AddEditProjectModal',
 }
 
 export type ModalPayload = {
@@ -11,41 +11,45 @@ export type ModalPayload = {
   taskId?: string;
 };
 
-export type ModalAction = {
-  type: ModalType;
-  payload?: ModalPayload;
-};
+type ModalAction =
+  | { action: 'open'; type: ModalType; payload?: ModalPayload }
+  | { action: 'close'; type: ModalType };
 
-type ModalInitialState = {
+type ModalState = {
   isAddTaskModalOpen: boolean;
   isAddProjectModalOpen: boolean;
   payload?: ModalPayload;
 };
 
 interface ModalContextProps {
-  modalState: ModalInitialState;
-  toggleModal: React.Dispatch<ModalAction>;
+  modalState: ModalState;
+  openModal: (type: ModalType, payload?: ModalPayload) => void;
+  closeModal: (type: ModalType) => void;
 }
 
-const initialModalState: ModalInitialState = {
+const initialModalState: ModalState = {
   isAddProjectModalOpen: false,
   isAddTaskModalOpen: false,
 };
 
-const modalReducer: Reducer<ModalInitialState, ModalAction> = (state, action) => {
+const modalReducer: Reducer<ModalState, ModalAction> = (state, action) => {
+  if (action.action === 'close') {
+    switch (action.type) {
+      case ModalType.AddEditProjectModal:
+        return { ...state, isAddProjectModalOpen: false, payload: undefined };
+      case ModalType.AddEditTaskModal:
+        return { ...state, isAddTaskModalOpen: false, payload: undefined };
+      default:
+        return state;
+    }
+  }
+
+  // action === 'open'
   switch (action.type) {
     case ModalType.AddEditProjectModal:
-      return {
-        ...state,
-        isAddProjectModalOpen: !state.isAddProjectModalOpen,
-        payload: state.isAddProjectModalOpen ? undefined : action.payload,
-      };
+      return { ...state, isAddProjectModalOpen: true, payload: action.payload };
     case ModalType.AddEditTaskModal:
-      return {
-        ...state,
-        isAddTaskModalOpen: !state.isAddTaskModalOpen,
-        payload: state.isAddTaskModalOpen ? undefined : action.payload,
-      };
+      return { ...state, isAddTaskModalOpen: true, payload: action.payload };
     default:
       return state;
   }
@@ -53,12 +57,24 @@ const modalReducer: Reducer<ModalInitialState, ModalAction> = (state, action) =>
 
 export const ModalContext = createContext<ModalContextProps>({
   modalState: initialModalState,
-  toggleModal: () => {},
+  openModal: () => {},
+  closeModal: () => {},
 });
 
 export const ModalContextProvider = ({ children }: { children: ReactNode }) => {
-  const [modalState, toggleModal] = React.useReducer(modalReducer, initialModalState);
+  const [modalState, dispatch] = React.useReducer(modalReducer, initialModalState);
+
+  const openModal = (type: ModalType, payload?: ModalPayload) => {
+    dispatch({ action: 'open', type, payload });
+  };
+
+  const closeModal = (type: ModalType) => {
+    dispatch({ action: 'close', type });
+  };
+
   return (
-    <ModalContext.Provider value={{ modalState, toggleModal }}>{children}</ModalContext.Provider>
+    <ModalContext.Provider value={{ modalState, openModal, closeModal }}>
+      {children}
+    </ModalContext.Provider>
   );
 };

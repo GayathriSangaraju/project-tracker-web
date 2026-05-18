@@ -1,26 +1,9 @@
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import Chip from '@mui/material/Chip';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import TablePagination from '@mui/material/TablePagination';
-import Paper from '@mui/material/Paper';
-import CircularProgress from '@mui/material/CircularProgress';
-import Typography from '@mui/material/Typography';
-import {
-  createColumnHelper,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-  flexRender,
-} from '@tanstack/react-table';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { createColumnHelper } from '@tanstack/react-table';
 import { formatDate } from '../../utils/formatDate';
 import { useGetTasksByProjectId } from '../../hooks/tasks/useGetTasksByProjectId';
 import { useParams } from 'react-router';
@@ -28,12 +11,12 @@ import { Task } from '../../types/task';
 import { useDeleteTask } from '../../hooks/tasks/useDeleteTask';
 import { ModalContext, ModalType } from '../../contexts/ModalContextProvider';
 import { useContext, useState } from 'react';
-import { ErrorMessage } from '../ErrorMessage/ErrorMessage';
 import { ConfirmDialog } from '../ConfirmDialog/ConfirmDialog';
+import { DataTable } from '../DataTable/DataTable';
 
 export const TasksList = () => {
   const params = useParams();
-  const { toggleModal } = useContext(ModalContext);
+  const { openModal } = useContext(ModalContext);
   const projectId = params.id ?? '';
   const { data: projectTasks, isLoading, isError } = useGetTasksByProjectId(projectId);
   const columnHelper = createColumnHelper<Task>();
@@ -50,12 +33,9 @@ export const TasksList = () => {
   };
 
   const handleEditTask = (taskId: string) => {
-    toggleModal({
-      type: ModalType.AddEditTaskModal,
-      payload: {
-        isEditMode: true,
-        taskId: taskId,
-      },
+    openModal(ModalType.AddEditTaskModal, {
+      isEditMode: true,
+      taskId: taskId,
     });
   };
 
@@ -90,14 +70,19 @@ export const TasksList = () => {
     columnHelper.display({
       id: 'actions',
       cell: (info) => {
+        const isCompleted = info.row.original.completed;
         return (
           <Stack direction="row" spacing={1}>
-            <IconButton aria-label="Edit" onClick={() => handleEditTask(info?.row?.original?.id)}>
+            <IconButton
+              aria-label={`Edit task ${info?.row?.original?.title}`}
+              disabled={isCompleted}
+              onClick={() => handleEditTask(info?.row?.original?.id)}
+            >
               <EditIcon />
             </IconButton>
             <IconButton
-              aria-label="Delete"
-              disabled={deleteTaskMutation.isPending}
+              aria-label={`Delete task ${info?.row?.original?.title}`}
+              disabled={deleteTaskMutation.isPending || isCompleted}
               onClick={() => {
                 setDeleteTargetId(info?.row?.original?.id);
                 setShowDeleteConfirmDialog(true);
@@ -114,80 +99,17 @@ export const TasksList = () => {
     }),
   ];
 
-  const table = useReactTable({
-    columnResizeMode: 'onChange',
-    columns,
-    data: projectTasks || [],
-    defaultColumn: {
-      maxSize: 800,
-      minSize: 80,
-    },
-    enableSorting: true,
-    enableRowSelection: true,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: 5,
-      },
-    },
-  });
-
   return (
     <div>
-      {isError && <ErrorMessage message={'An error occurred while fetching tasks.'} />}
-      {!isError && (
-        <TableContainer component={Paper}>
-          {isLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-              <CircularProgress />
-            </div>
-          ) : table.getRowModel().rows.length === 0 ? (
-            <Typography sx={{ p: 3, textAlign: 'center' }} color="text.secondary">
-              No tasks yet. Click "Add task" to create one.
-            </Typography>
-          ) : (
-            <>
-              <Table>
-                <TableHead>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableCell key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableHead>
-                <TableBody>
-                  {table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} hover>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <TablePagination
-                component="div"
-                count={table.getFilteredRowModel().rows.length}
-                page={table.getState().pagination.pageIndex}
-                onPageChange={(_, page) => table.setPageIndex(page)}
-                rowsPerPage={table.getState().pagination.pageSize}
-                onRowsPerPageChange={(e) => table.setPageSize(Number(e.target.value))}
-                rowsPerPageOptions={[5, 10, 25]}
-              />
-            </>
-          )}
-        </TableContainer>
-      )}
+      <DataTable
+        columns={columns}
+        data={projectTasks || []}
+        isLoading={isLoading}
+        isError={isError}
+        errorMessage="An error occurred while fetching tasks."
+        emptyMessage='No tasks yet. Click "Add task" to create one.'
+        ariaLabel="Tasks table"
+      />
       <ConfirmDialog
         open={showDeleteConfirmDialog}
         title="Delete Task"

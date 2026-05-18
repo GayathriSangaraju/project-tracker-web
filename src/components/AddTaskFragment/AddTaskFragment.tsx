@@ -8,10 +8,10 @@ interface AddTaskFragmentProps {
 }
 
 export const AddTaskFragment = ({ isAddTaskDisabled }: AddTaskFragmentProps) => {
-  const { toggleModal } = useContext(ModalContext);
+  const { openModal } = useContext(ModalContext);
 
   const handleAddTaskClick = () => {
-    toggleModal({ type: ModalType.AddEditTaskModal });
+    openModal(ModalType.AddEditTaskModal);
   };
   return (
     <>

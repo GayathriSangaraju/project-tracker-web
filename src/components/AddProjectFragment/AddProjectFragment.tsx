@@ -4,9 +4,9 @@ import { ModalContext, ModalType } from '../../contexts/ModalContextProvider';
 import { AddEditProjectModal } from '../AddEditProjectModal/AddEditProjectModal';
 
 export const AddProjectFragment = () => {
-  const { toggleModal } = useContext(ModalContext);
+  const { openModal } = useContext(ModalContext);
   const handleAddProjectClick = () => {
-    toggleModal({ type: ModalType.AddEditProjectModal });
+    openModal(ModalType.AddEditProjectModal);
   };
   return (
     <>

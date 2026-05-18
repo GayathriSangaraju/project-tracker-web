@@ -5,7 +5,8 @@ import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Alert from '@mui/material/Alert';
-import React, { useContext, useState } from 'react';
+import CircularProgress from '@mui/material/CircularProgress';
+import { useContext, useEffect, useState } from 'react';
 import { ModalContext, ModalType } from '../../contexts/ModalContextProvider';
 import { useCreateProject } from '../../hooks/projects/useCreateProject';
 import { useGetProjectById } from '../../hooks/projects/useGetProjectById';
@@ -15,7 +16,7 @@ import { ErrorMessage } from '../ErrorMessage/ErrorMessage';
 import { PROJECT_DATA_FETCH_ERROR } from '../../constants/errorMessages';
 
 export const AddEditProjectModal = () => {
-  const { modalState, toggleModal } = useContext(ModalContext);
+  const { modalState, closeModal } = useContext(ModalContext);
   const isProjectModalOpen = modalState.isAddProjectModalOpen;
   const modalPayload = modalState.payload;
   const isEditMode = modalPayload?.isEditMode ?? false;
@@ -25,19 +26,29 @@ export const AddEditProjectModal = () => {
   const [error, setError] = useState<string>('');
   const [mutationError, setMutationError] = useState<string>('');
 
-  const handleCancel = () => {
-    toggleModal({ type: ModalType.AddEditProjectModal });
+  const createProjectMutation = useCreateProject();
+  const updateProjectMutation = useUpdateProject(projectId ?? '');
+  const isSaving = createProjectMutation.isPending || updateProjectMutation.isPending;
+
+  const resetForm = () => {
     setProjectName('');
     setError('');
     setMutationError('');
   };
 
-  React.useEffect(() => {
-    if (projectData) setProjectName(projectData.name);
-  }, [projectData]);
+  const handleCancel = () => {
+    closeModal(ModalType.AddEditProjectModal);
+    resetForm();
+  };
 
-  const createProjectMutation = useCreateProject();
-  const updateProjectMutation = useUpdateProject(projectId ?? '');
+  useEffect(() => {
+    if (isProjectModalOpen && isEditMode && projectData) {
+      setProjectName(projectData.name);
+    }
+    if (!isProjectModalOpen) {
+      resetForm();
+    }
+  }, [projectData, isProjectModalOpen, isEditMode]);
 
   const handleSaveProject = async () => {
     const project = {
@@ -54,8 +65,8 @@ export const AddEditProjectModal = () => {
         } else {
           await createProjectMutation.mutateAsync(project);
         }
-        toggleModal({ type: ModalType.AddEditProjectModal });
-        setProjectName('');
+        closeModal(ModalType.AddEditProjectModal);
+        resetForm();
       } catch (err) {
         setMutationError(err instanceof Error ? err.message : 'Failed to save project.');
       }
@@ -63,8 +74,10 @@ export const AddEditProjectModal = () => {
   };
 
   return (
-    <Dialog onClose={handleCancel} open={isProjectModalOpen}>
-      <DialogTitle>{isEditMode ? 'Edit Project' : 'Add Project'}</DialogTitle>
+    <Dialog onClose={handleCancel} open={isProjectModalOpen} aria-labelledby="project-dialog-title">
+      <DialogTitle id="project-dialog-title">
+        {isEditMode ? 'Edit Project' : 'Add Project'}
+      </DialogTitle>
       <DialogContent>
         {isLoading && <Loading />}
         {isError && <ErrorMessage message={PROJECT_DATA_FETCH_ERROR} />}
@@ -76,7 +89,7 @@ export const AddEditProjectModal = () => {
         <TextField
           label="Name"
           value={projectName}
-          disabled={isLoading || isError}
+          disabled={isLoading || isError || isSaving}
           placeholder="Enter project name"
           required
           error={!!error}
@@ -89,16 +102,17 @@ export const AddEditProjectModal = () => {
         />
       </DialogContent>
       <DialogActions>
-        <Button variant="outlined" onClick={handleCancel} size="medium">
+        <Button variant="outlined" onClick={handleCancel} disabled={isSaving} size="medium">
           Cancel
         </Button>
         <Button
           variant="contained"
-          disabled={isLoading || isError}
+          disabled={isLoading || isError || isSaving}
           onClick={handleSaveProject}
           size="medium"
+          startIcon={isSaving ? <CircularProgress size={16} /> : undefined}
         >
-          Save
+          {isSaving ? 'Saving...' : 'Save'}
         </Button>
       </DialogActions>
     </Dialog>
