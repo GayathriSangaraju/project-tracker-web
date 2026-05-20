@@ -12,6 +12,7 @@ import { useContext, useState } from 'react';
 import { ModalContext, ModalType } from '../../contexts/ModalContextProvider';
 import { ConfirmDialog } from '../ConfirmDialog/ConfirmDialog';
 import { DataTable } from '../DataTable/DataTable';
+import Box from '@mui/material/Box';
 
 export const ProjectsList = () => {
   const { data: projects, isLoading, isError } = useGetAllProjects();
@@ -93,7 +94,7 @@ export const ProjectsList = () => {
   ];
 
   return (
-    <div>
+    <Box component="section" aria-label="Projects list">
       <DataTable
         columns={columns}
         data={projects || []}
@@ -110,6 +111,6 @@ export const ProjectsList = () => {
         onConfirm={handleDeleteProject}
         onCancel={() => setShowDeleteConfirmDialog(false)}
       />
-    </div>
+    </Box>
   );
 };

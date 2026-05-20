@@ -5,7 +5,7 @@ import { ProjectsList } from '../../components/ProjectsList/ProjectsList';
 
 export const ProjectsPage = () => {
   return (
-    <Stack spacing={2}>
+    <Stack component="section" spacing={2} aria-label="Projects">
       <Typography variant="h5" component="h2">
         Projects
       </Typography>

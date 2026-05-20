@@ -8,10 +8,12 @@ import { ErrorMessage } from './components/ErrorMessage/ErrorMessage';
 export default function App() {
   return (
     <ModalContextProvider>
-      <Box sx={{ p: '2rem', fontFamily: 'system-ui, sans-serif' }}>
-        <Typography variant="h4" component="h1" sx={{ textAlign: 'center', mb: 2 }}>
-          Project Tracker
-        </Typography>
+      <Box component="main" sx={{ p: '2rem', fontFamily: 'system-ui, sans-serif' }}>
+        <Box component="header" sx={{ mb: 2 }}>
+          <Typography variant="h4" component="h1" sx={{ textAlign: 'center' }}>
+            Project Tracker
+          </Typography>
+        </Box>
         <ErrorBoundary
           fallback={<ErrorMessage message="Something went wrong on this page." />}
         >

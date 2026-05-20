@@ -18,11 +18,11 @@ export const ProjectsDetailPage = () => {
   }
 
   return (
-    <Box>
+    <Box component="main">
       <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
         Project Details
       </Typography>
-      <Box>
+      <Box component="section" aria-label="Project summary">
         {isLoading && <Loading />}
         {isError && <ErrorMessage message={error?.message ?? 'Failed to load project.'} />}
         {!isLoading && data && (
